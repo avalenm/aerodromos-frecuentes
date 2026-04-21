@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import datetime
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from notifica import send_telegram
 
 load_dotenv()
 
@@ -78,7 +79,9 @@ def extractCamaras():
 
     html = get_with_retry(url)
     if html is None:
-        print('No se pudo conectar a DGAC después de los reintentos. Abortando.')
+        msg = '🔴 <b>extraeCamara</b>: No se pudo conectar a aipchile.dgac.gob.cl después de 3 intentos.'
+        print(msg)
+        send_telegram(msg)
         return
 
     soup = BeautifulSoup(html.text, 'html.parser').find_all("td", {"headers": "aerodromos"})

@@ -41,6 +41,8 @@ jobs:
       - name: Scraper camaras
         env:
           MONGO_URI: mongodb://localhost:27017
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python extraeCamara.py
 
   cerrados:
@@ -77,4 +79,6 @@ jobs:
       - name: Scraper cerrados/NOTAMs
         env:
           MONGO_URI: mongodb://localhost:27017
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python extraeCerrados.py

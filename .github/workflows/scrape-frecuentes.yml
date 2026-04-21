@@ -2,15 +2,15 @@ name: Scraper Frecuentes
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # camaras cada 5 min
-    - cron: '*/20 * * * *'  # cerrados cada 20 min
+    - cron: '*/10 * * * *'  # camaras cada 10 min
+    - cron: '*/30 * * * *'  # cerrados cada 30 min
   workflow_dispatch:
 
 jobs:
   camaras:
-    name: Camaras (cada 5 min)
+    name: Camaras (cada 10 min)
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/5 * * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/10 * * * *'
     steps:
       - uses: actions/checkout@v4
 
@@ -44,9 +44,9 @@ jobs:
         run: python extraeCamara.py
 
   cerrados:
-    name: Cerrados/NOTAMs (cada 20 min)
+    name: Cerrados/NOTAMs (cada 30 min)
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/20 * * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/30 * * * *'
     steps:
       - uses: actions/checkout@v4
 

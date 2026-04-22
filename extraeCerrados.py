@@ -47,13 +47,13 @@ def adsCerrados():
         raise ConnectionError('adsCerrados: no se pudo conectar a DGAC')
 
     soup = BeautifulSoup(html.text, 'html.parser')
-    test = soup.findAll(text=re.compile('Se encontraron'))
+    test = soup.findAll(string=re.compile('Se encontraron'))
     txt = test[0].replace('\n', '').split(' ')
     cantidad = int(txt[2])
     numeroPaginas = math.ceil(cantidad / 20)
 
     for i in range(1, numeroPaginas + 1):
-        urlAds = "https://aipchile.dgac.gob.cl/notam?page=" + format(i) + "notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QFALC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Bobjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
+        urlAds = "https://aipchile.dgac.gob.cl/notam?page=" + format(i) + "&notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QFALC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Bobjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
         htmlAds = get_with_retry(urlAds)
         if htmlAds is None:
             raise ConnectionError(f'adsCerrados: no se pudo obtener página {i}')
@@ -102,7 +102,7 @@ def pistasCerradas():
         raise ConnectionError('pistasCerradas: no se pudo conectar a DGAC')
 
     soup = BeautifulSoup(html.text, 'html.parser')
-    test = soup.findAll(text=re.compile('Se encontraron'))
+    test = soup.findAll(string=re.compile('Se encontraron'))
     txt = test[0].replace('\n', '').split(' ')
     cantidad = int(txt[2])
     numeroPaginas = math.ceil(cantidad / 20)
@@ -110,7 +110,7 @@ def pistasCerradas():
 
     for i in range(1, numeroPaginas + 1):
         print(i)
-        urlAds = "https://aipchile.dgac.gob.cl/notam?page=" + format(i) + "notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QMRLC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Botjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
+        urlAds = "https://aipchile.dgac.gob.cl/notam?page=" + format(i) + "&notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QMRLC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Botjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
         htmlAds = get_with_retry(urlAds)
         if htmlAds is None:
             raise ConnectionError(f'pistasCerradas: no se pudo obtener página {i}')

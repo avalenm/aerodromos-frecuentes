@@ -46,6 +46,12 @@ def getCamaras(link, nombre, lugar, codigo):
         urllast = urlImagen.get('href')
         texto = urlImagen.get('title')
         operacional = 1 if len(urllast) > 0 else 0
+        info_div = imagen.find('div', class_='info_camara')
+        if info_div and info_div.contents:
+            utc_str = info_div.contents[0].strip()
+            idx = texto.find('tomada el ')
+            if utc_str and idx > -1:
+                texto = texto[:idx + len('tomada el ')] + utc_str
         txt = texto.split(' ')
         sub = 'tomada'
         ind = [i for i, s in enumerate(txt) if sub in s]

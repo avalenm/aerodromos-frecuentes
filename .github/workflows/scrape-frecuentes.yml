@@ -22,25 +22,10 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Configurar SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.CONTABO_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 194.238.26.6 >> ~/.ssh/known_hosts
-
-      - name: Abrir túnel SSH a MongoDB
-        run: |
-          ssh -f -N -L 27017:localhost:27017 \
-            -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ServerAliveInterval=60 \
-            root@194.238.26.6
-          sleep 2
-
       - name: Scraper camaras
         env:
-          MONGO_URI: mongodb://localhost:27017
+          API_URL: ${{ secrets.API_URL }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python extraeCamara.py
@@ -60,25 +45,10 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Configurar SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.CONTABO_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 194.238.26.6 >> ~/.ssh/known_hosts
-
-      - name: Abrir túnel SSH a MongoDB
-        run: |
-          ssh -f -N -L 27017:localhost:27017 \
-            -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ServerAliveInterval=60 \
-            root@194.238.26.6
-          sleep 2
-
       - name: Scraper cerrados/NOTAMs
         env:
-          MONGO_URI: mongodb://localhost:27017
+          API_URL: ${{ secrets.API_URL }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python extraeCerrados.py

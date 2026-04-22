@@ -5,26 +5,24 @@ import re
 import math
 from bs4 import BeautifulSoup
 import datetime
-from pymongo import MongoClient
 from dotenv import load_dotenv
 from notifica import send_telegram
 
 load_dotenv()
 
-client = MongoClient(os.getenv('MONGO_URI', 'mongodb://localhost:27017'))
-db = client['aerodromos']
-col = db['cerrados']
+API_URL     = os.getenv('API_URL', 'http://194.238.26.6:3639')
+SCRAPER_KEY = os.getenv('SCRAPER_API_KEY', '')
 
 header = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"
 }
 
-now = datetime.datetime.now()
+now = datetime.datetime.now(datetime.timezone.utc)
 fechaHoy = now.strftime("%Y-%m-%d %H:%M:%S")
 
 REQUEST_TIMEOUT = 20
-MAX_RETRIES = 3
-RETRY_DELAY = 5
+MAX_RETRIES     = 3
+RETRY_DELAY     = 5
 
 aerodromosCerrados = []
 
@@ -87,13 +85,13 @@ def adsCerrados():
                 dd = leng - e
                 horario = txt[d+2:-dd]
             aerodromosCerrados.append({
-                'Codigo': codigo,
-                'FechaFin': fin,
+                'Codigo':      codigo,
+                'FechaFin':    fin,
                 'FechaInicio': inicio,
-                'Horario': horario,
-                'Notam': txt,
-                'Pista': '1',
-                'Tipo': '1',
+                'Horario':     horario,
+                'Notam':       txt,
+                'Pista':       '1',
+                'Tipo':        '1',
             })
 
 
@@ -112,7 +110,7 @@ def pistasCerradas():
 
     for i in range(1, numeroPaginas + 1):
         print(i)
-        urlAds = "https://aipchile.dgac.gob.cl/notam?page=" + format(i) + "notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QMRLC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Bobjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
+        urlAds = "https://aipchile.dgac.gob.cl/notam?page=" + format(i) + "notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QMRLC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Botjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
         htmlAds = get_with_retry(urlAds)
         if htmlAds is None:
             raise ConnectionError(f'pistasCerradas: no se pudo obtener página {i}')
@@ -149,13 +147,13 @@ def pistasCerradas():
             if pistaLado != '/':
                 pista = pista + pistaLado
             aerodromosCerrados.append({
-                'Codigo': codigo,
-                'FechaFin': fin,
+                'Codigo':      codigo,
+                'FechaFin':    fin,
                 'FechaInicio': inicio,
-                'Horario': horario,
-                'Notam': txt,
-                'Pista': pista,
-                'Tipo': '2',
+                'Horario':     horario,
+                'Notam':       txt,
+                'Pista':       pista,
+                'Tipo':        '2',
             })
 
 
@@ -169,25 +167,16 @@ def runCerrados():
         send_telegram(msg)
         return
 
-    for p in aerodromosCerrados:
-        col.update_one({
-            'Codigo': p['Codigo'],
-            'Notam':  p['Notam'],
-        }, {
-            "$set": {
-                'Codigo':      p['Codigo'],
-                'FechaFin':    p['FechaFin'],
-                'FechaInicio': p['FechaInicio'],
-                'Horario':     p['Horario'],
-                'Notam':       p['Notam'],
-                'Pista':       p['Pista'],
-                'Tipo':        p['Tipo'],
-                'fecha':       fechaHoy,
-            }
-        }, upsert=True)
-        col.delete_many({'fecha': {'$ne': fechaHoy}})
-
-    print('Scrip Terminado')
+    # Enviar al servidor FeathersJS via HTTP
+    resp = requests.post(
+        f'{API_URL}/scraper/cerrados',
+        json={'cerrados': aerodromosCerrados, 'fechaHoy': fechaHoy},
+        headers={'x-scraper-key': SCRAPER_KEY},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    print(f'cerrados enviados: {resp.json()}')
+    print('Script Terminado')
 
 
 if __name__ == '__main__':

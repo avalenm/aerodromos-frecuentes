@@ -47,11 +47,14 @@ def getCamaras(link, nombre, lugar, codigo):
         texto = urlImagen.get('title')
         operacional = 1 if len(urllast) > 0 else 0
         info_div = imagen.find('div', class_='info_camara')
+        print(f'DEBUG info_div found: {info_div is not None} | contents: {repr(info_div.contents[0]) if info_div and info_div.contents else "N/A"}')
         if info_div and info_div.contents:
             utc_str = info_div.contents[0].strip()
             idx = texto.find('tomada el ')
+            print(f'DEBUG utc_str="{utc_str}" | idx={idx}')
             if utc_str and idx > -1:
                 texto = texto[:idx + len('tomada el ')] + utc_str
+        print(f'DEBUG texto final: {texto}')
         txt = texto.split(' ')
         sub = 'tomada'
         ind = [i for i, s in enumerate(txt) if sub in s]

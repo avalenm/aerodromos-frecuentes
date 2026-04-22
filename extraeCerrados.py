@@ -41,8 +41,8 @@ def get_with_retry(url):
 
 
 def adsCerrados():
-    url = "https://aipchile.dgac.gob.cl/notam?notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QFALC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Bobjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
-    html = get_with_retry(url)
+    baseUrl = "https://aipchile.dgac.gob.cl/notam?notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QFALC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Bobjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
+    html = get_with_retry(baseUrl)
     if html is None:
         raise ConnectionError('adsCerrados: no se pudo conectar a DGAC')
 
@@ -52,11 +52,16 @@ def adsCerrados():
     cantidad = int(txt[2])
     numeroPaginas = math.ceil(cantidad / 20)
 
-    for i in range(1, numeroPaginas + 1):
-        urlAds = "https://aipchile.dgac.gob.cl/notam?page=" + format(i) + "&notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QFALC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Bobjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
+    pages = {1: html}  # reusar la primera página ya descargada
+    for i in range(2, numeroPaginas + 1):
+        urlAds = baseUrl + "&page=" + format(i)
         htmlAds = get_with_retry(urlAds)
         if htmlAds is None:
             raise ConnectionError(f'adsCerrados: no se pudo obtener página {i}')
+        pages[i] = htmlAds
+
+    for i in range(1, numeroPaginas + 1):
+        htmlAds = pages[i]
         soupAds = BeautifulSoup(htmlAds.text, 'html.parser').find_all('td', class_='codificacion')
         for notam in soupAds:
             txt = notam.getText()
@@ -96,8 +101,8 @@ def adsCerrados():
 
 
 def pistasCerradas():
-    url = "https://aipchile.dgac.gob.cl/notam?notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QMRLC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Bobjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
-    html = get_with_retry(url)
+    baseUrl = "https://aipchile.dgac.gob.cl/notam?notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QMRLC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Bobjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
+    html = get_with_retry(baseUrl)
     if html is None:
         raise ConnectionError('pistasCerradas: no se pudo conectar a DGAC')
 
@@ -108,12 +113,17 @@ def pistasCerradas():
     numeroPaginas = math.ceil(cantidad / 20)
     print(numeroPaginas)
 
-    for i in range(1, numeroPaginas + 1):
-        print(i)
-        urlAds = "https://aipchile.dgac.gob.cl/notam?page=" + format(i) + "&notam_filters%5Bfir%5D=&notam_filters%5Bserie%5D%5Btext%5D=&notam_filters%5Btipo%5D=&notam_filters%5Bcodigo%5D%5Btext%5D=QMRLC&notam_filters%5Btransito%5D%5Btext%5D=&notam_filters%5Botjetivo%5D%5Btext%5D=&notam_filters%5Balcance%5D%5Btext%5D=&notam_filters%5Btexto%5D%5Btext%5D=&filter=1&boton=Filtrar"
+    pages = {1: html}  # reusar la primera página ya descargada
+    for i in range(2, numeroPaginas + 1):
+        urlAds = baseUrl + "&page=" + format(i)
         htmlAds = get_with_retry(urlAds)
         if htmlAds is None:
             raise ConnectionError(f'pistasCerradas: no se pudo obtener página {i}')
+        pages[i] = htmlAds
+
+    for i in range(1, numeroPaginas + 1):
+        print(i)
+        htmlAds = pages[i]
         soupAds = BeautifulSoup(htmlAds.text, 'html.parser').find_all('td', class_='codificacion')
         for notam in soupAds:
             txt = notam.getText()

@@ -16,4 +16,5 @@ def send_telegram(mensaje: str) -> None:
             timeout=10,
         )
     except Exception as e:
-        print(f'[notifica] Error enviando Telegram: {e}')
+        # No imprimir str(e): la URL contiene el token y los logs son publicos
+        print(f'[notifica] Error enviando Telegram: {type(e).__name__}')

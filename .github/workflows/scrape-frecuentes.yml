@@ -6,10 +6,19 @@ on:
     - cron: '*/30 * * * *'  # cerrados cada 30 min
   workflow_dispatch:
 
+# Solo lo necesario: actions:write para el keep-alive, contents:read para checkout
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   camaras:
     name: Camaras (cada 10 min)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: camaras
+      cancel-in-progress: false
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/10 * * * *'
     steps:
       - uses: actions/checkout@v4.2.2
@@ -34,6 +43,10 @@ jobs:
   cerrados:
     name: Cerrados/NOTAMs (cada 30 min)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: cerrados
+      cancel-in-progress: false
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/30 * * * *'
     steps:
       - uses: actions/checkout@v4.2.2
@@ -53,3 +66,16 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python extraeCerrados.py
+
+  # GitHub desactiva los crons de repos publicos tras 60 dias sin commits.
+  # Re-habilitar el workflow via API reinicia ese contador sin commits falsos.
+  keepalive:
+    name: Keep-alive (evita desactivacion por inactividad)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '*/30 * * * *'
+    steps:
+      - name: Re-habilitar workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/scrape-frecuentes.yml/enable"

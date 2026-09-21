@@ -17,7 +17,8 @@ jobs:
     concurrency:
       group: dgac-aerodromos
       cancel-in-progress: false
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 */2 * *'
+    # vars.DGAC_ENABLED=false apaga los crons sin tocar el repo (la API debe tener /scraper/aerodromos)
+    if: vars.DGAC_ENABLED != 'false' && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 */2 * *')
     steps:
       - uses: actions/checkout@v4.2.2
 
@@ -54,7 +55,7 @@ jobs:
     concurrency:
       group: dgac-procedimientos
       cancel-in-progress: false
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 */3 * *'
+    if: vars.DGAC_ENABLED != 'false' && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 */3 * *')
     steps:
       - uses: actions/checkout@v4.2.2
 

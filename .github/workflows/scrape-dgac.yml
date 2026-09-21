@@ -1,0 +1,76 @@
+name: Scraper DGAC
+
+on:
+  schedule:
+    - cron: '0 1 */2 * *'   # aerodromos + pistas + aviso frecuencias cada 48h
+    - cron: '0 2 */3 * *'   # procedimientos (cartillas PDF) cada 72h
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aerodromos:
+    name: Aerodromos + Frecuencias (48h)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: dgac-aerodromos
+      cancel-in-progress: false
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 */2 * *'
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.4.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Scraper aerodromos + pistas
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PYTHONUNBUFFERED: '1'
+        run: python extraeAerodromos.py
+
+      - name: Aviso cambio de frecuencias
+        if: always()
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python avisoCambioFrecuencias.py
+
+  procedimientos:
+    name: Procedimientos PDF (72h)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: dgac-procedimientos
+      cancel-in-progress: false
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 */3 * *'
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5.4.0
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Scraper procedimientos
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PYTHONUNBUFFERED: '1'
+        run: python extraeProcedimientos.py

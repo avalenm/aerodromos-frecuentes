@@ -1,47 +1,64 @@
-# Aeródromos Chile — Scrapers Frecuentes
+# Aeródromos Chile — Scrapers DGAC
 
-Scrapers de alta frecuencia para datos de aeródromos chilenos (DGAC).
+Scrapers de datos de aeródromos chilenos (sitio oficial de la DGAC, `aipchile.dgac.gob.cl`).
 
 ## Por qué este repo es público
 
-GitHub Actions otorga **minutos ilimitados** a repositorios públicos, pero solo 2.000 min/mes a repos privados. Los scrapers de este repo corren con mucha frecuencia:
+GitHub Actions da **minutos ilimitados** a repositorios públicos y solo 3.000 min/mes a la cuenta para repos privados. Además la DGAC bloquea la IP fija del VPS, así que los scrapers no pueden correr allá. Cada run de Actions sale con una IP distinta.
 
-- **Cámaras**: cada 5 minutos → 8.640 ejecuciones/mes
-- **NOTAMs/Cerrados**: cada 20 minutos → 2.160 ejecuciones/mes
+**No hay información sensible en este repo.** Los scrapers no tocan la base de datos: hacen `POST` a la API en el VPS con una clave (`x-scraper-key`) que vive en GitHub Secrets. Los logs son públicos, por eso ningún script imprime secrets ni excepciones que puedan contenerlos.
 
-Esto haría imposible mantenerlos en el repo privado sin incurrir en costos. Al ser público, corren gratis sin límite.
+## Workflows
 
-**No hay información sensible en este repo** — las credenciales están en GitHub Secrets y nunca en el código.
+| Workflow | Job | Frecuencia | Script | Endpoint |
+|---|---|---|---|---|
+| `scrape-frecuentes.yml` | Cámaras | cada 10 min | `extraeCamara.py` | `POST /scraper/camaras` |
+| `scrape-frecuentes.yml` | Cerrados / NOTAMs | cada 30 min | `extraeCerrados.py` | `POST /scraper/cerrados` |
+| `scrape-frecuentes.yml` | Keep-alive | cada 30 min | — | re-habilita ambos workflows por API |
+| `scrape-dgac.yml` | Aeródromos + pistas | cada 48 h | `extraeAerodromos.py` | `POST /scraper/aerodromos` |
+| `scrape-dgac.yml` | Aviso frecuencias | cada 48 h | `avisoCambioFrecuencias.py` | `POST /scraper/frecuencias` |
+| `scrape-dgac.yml` | Procedimientos PDF | cada 72 h | `extraeProcedimientos.py` | `POST /scraper/procedimientos` |
+
+GitHub desactiva los crons de un repo público tras 60 días sin commits; el job keep-alive lo evita re-habilitando los workflows vía API.
 
 ## Qué hace cada script
 
-### `extraeCamara.py`
-Raspa la sección de cámaras del sitio oficial de la DGAC (`aipchile.dgac.gob.cl/camara/`) y guarda en MongoDB el estado operacional, orientación y link de cada cámara de aeródromo.
+- **`extraeCamara.py`** — estado, orientación y link de cada cámara de aeródromo.
+- **`extraeCerrados.py`** — NOTAMs QFALC (aeródromos cerrados) y QMRLC (pistas cerradas).
+- **`extraeAerodromos.py`** — recorre `combinacionesAds.txt` (todos los designadores `SC??`) y extrae nombre, uso, ubicación, coordenadas, horario, elevación, observaciones y pistas. Si más de 20 páginas responden distinto de 200 aborta sin enviar, para que la API no borre aeródromos por un fallo de la DGAC.
+- **`avisoCambioFrecuencias.py`** — compara el `Last-Modified` del PDF ENR 4.1 de frecuencias con el guardado; si cambió, avisa por Telegram.
+- **`extraeProcedimientos.py`** — listado de cartillas PDF (IAC, SID, STAR, MRVA, rutas) por aeródromo y extrae el título real desde el PDF con `pdfplumber`.
 
-### `extraeCerrados.py`
-Raspa los NOTAMs de tipo QFALC (aeródromos cerrados) y QMRLC (pistas cerradas) desde el sitio de la DGAC y guarda fechas de inicio/fin, código ICAO y texto completo del NOTAM.
+La API hace upsert de lo recibido y borra lo que no vino en la corrida (misma semántica que tenía el `delete_many` original), con un mínimo de registros para no vaciar una colección.
 
-## Arquitectura general
+## Arquitectura
 
 ```
 GitHub Actions (este repo — público, IP rotatoria)
-├── extraeCamara.py    → cada 5 min  → MongoDB en VPS
-└── extraeCerrados.py  → cada 20 min → MongoDB en VPS
+├── extraeCamara.py            → POST /scraper/camaras         ┐
+├── extraeCerrados.py          → POST /scraper/cerrados        │
+├── extraeAerodromos.py        → POST /scraper/aerodromos      ├→ API FeathersJS (VPS) → MongoDB
+├── avisoCambioFrecuencias.py  → POST /scraper/frecuencias     │
+└── extraeProcedimientos.py    → POST /scraper/procedimientos  ┘
 
 Repo privado (aerodromos-chile)
-├── scraper/  → aeródromos, procedimientos, frecuencias, instagram
-├── api/      → FeathersJS REST API
-└── app/      → Flutter (iOS/Android)
+├── api/   → FeathersJS REST API (endpoints /scraper/* en src/middleware/index.js)
+└── app/   → Flutter (iOS/Android)
 ```
-
-## Rotación de IP
-
-Cada ejecución de GitHub Actions corre en una VM nueva con IP diferente (red de Microsoft Azure), lo que evita el bloqueo de IP por parte de la DGAC al hacer scraping frecuente.
 
 ## Secrets requeridos
 
 | Secret | Descripción |
 |---|---|
-| `CONTABO_SSH_KEY` | Clave SSH privada para el túnel a MongoDB |
+| `API_URL` | URL base de la API (ej. `http://194.238.26.6:3639`) |
+| `SCRAPER_API_KEY` | Debe coincidir con `SCRAPER_API_KEY` en el `.env` de la API |
+| `TELEGRAM_TOKEN` | Bot de Telegram para alertas de error y cambio de frecuencias |
+| `TELEGRAM_CHAT_ID` | Chat que recibe las alertas |
 
-El túnel SSH conecta GitHub Actions directamente a MongoDB en el VPS sin exponer el puerto a internet.
+## Correr local
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env   # completar
+python extraeAerodromos.py
+```
